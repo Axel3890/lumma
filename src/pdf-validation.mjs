@@ -1,0 +1,2 @@
+export const MAX_PDF_BYTES=10*1024*1024;
+export async function validatePDF(file){if(!file||!file.name.toLowerCase().endsWith('.pdf'))throw new Error('Elegí un archivo PDF.');if(file.size>MAX_PDF_BYTES)throw new Error('Cada PDF puede pesar hasta 10 MB.');if(file.size<5||new TextDecoder().decode(await file.slice(0,5).arrayBuffer())!=='%PDF-')throw new Error('El archivo no tiene una cabecera PDF válida.');}

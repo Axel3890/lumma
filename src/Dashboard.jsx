@@ -1,0 +1,32 @@
+import React,{useState} from 'react';
+import {ArrowUpRight,BookOpen,CalendarDays,CheckCircle2,ChevronLeft,ChevronRight,FileText,GraduationCap,Leaf,Plus} from 'lucide-react';
+import {progress,dateLabel} from './domain.mjs';
+import {subjectStyle,normalizeColor} from './colors.mjs';
+
+export default function Dashboard({data,profile,upcoming,month,setMonth,navigate,openSubject,addExam,addSubject,editExam,filterDate,CalendarComponent,ExamRowComponent}){
+ const active=data.subjects.filter(s=>s.status==='Cursando');
+ const [chosen,setChosen]=useState(null);
+ const focus=active.find(s=>s.id===chosen)||active.find(s=>s.id===upcoming[0]?.subject_id)||active[0];
+ const index=active.findIndex(s=>s.id===focus?.id);
+ const exams=data.assessments.filter(e=>e.subject_id===focus?.id);
+ const next=upcoming.find(e=>e.subject_id===focus?.id);
+ const completed=data.subjects.filter(s=>s.status==='Aprobada').length;
+ const value=progress(exams);
+ const date=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+ return <>
+  <div className="dashboard-heading"><div><p className="eyebrow">{date}</p><h1>Tu espacio para avanzar<span>.</span></h1><p>Hola, {profile.full_name?.split(' ')[0]||'estudiante'}. Un paso a la vez.</p></div><button className="primary" onClick={()=>addExam()}><Plus size={18}/>Nueva evaluación</button></div>
+  <div className="bento-grid">
+   <section className="glass-card career-card" aria-label="Resumen de tu carrera">
+    <div className="career-copy"><div className="card-kicker"><span className="soft-icon"><GraduationCap size={19}/></span><span>MI CARRERA</span></div><h2>{profile.career||'Tu próximo capítulo'}</h2><p>{profile.university||'Tu universidad'}<span> · </span>{profile.current_year||1}.º año de {profile.years||1}</p><button className="text-button" onClick={()=>navigate('subjects')}>Ver mi recorrido <ArrowUpRight size={15}/></button></div>
+    <svg className="career-ribbons" viewBox="0 0 280 200" fill="none" aria-hidden="true"><defs><linearGradient id="ribbon" x1="100" y1="30" x2="260" y2="200" gradientUnits="userSpaceOnUse"><stop stopColor="#d8ddc4" stopOpacity=".1"/><stop offset="1" stopColor="#a7b78c" stopOpacity=".68"/></linearGradient></defs><path d="M112-30C195 19 215 42 284 109V-30Z" fill="url(#ribbon)"/><path d="M67 173C131 21 202 40 293 133L289 205H105Z" fill="url(#ribbon)"/><path d="M136 205C186 75 229 91 296 166L287 205Z" fill="url(#ribbon)"/><path d="M62 169C128 35 179 79 285 160" stroke="#a7b18e" strokeWidth="1.2"/></svg>
+    <div className="career-stats"><div><span className="soft-icon sage"><BookOpen size={20}/></span><span><b>{active.length}</b><small>{active.length===1?'materia en curso':'materias en curso'}</small></span></div><div><span className="soft-icon lavender"><CalendarDays size={20}/></span><span><b>{upcoming.length}</b><small>{upcoming.length===1?'evaluación pendiente':'evaluaciones pendientes'}</small></span></div><div><span className="soft-icon peach"><CheckCircle2 size={20}/></span><span><b>{completed}<i> / {data.subjects.length}</i></b><small>aprobadas</small></span></div></div>
+   </section>
+   <section className="glass-card focus-card" style={focus?{...subjectStyle(focus.color),'--focus-color':normalizeColor(focus.color)}:{}} aria-label="Materia destacada">
+    <div className="focus-top"><div className="card-kicker"><span className="soft-icon"><BookOpen size={19}/></span><span>EN TU MESA DE ESTUDIO</span></div>{focus&&<span className="focus-status"><i/>Cursando</span>}</div>
+    {focus?<><div className="focus-title"><div><h2>{focus.name}</h2><p>Retomá donde lo dejaste.</p></div>{active.length>1&&<div className="subject-switcher"><button aria-label="Materia anterior" onClick={()=>setChosen(active[(index-1+active.length)%active.length].id)}><ChevronLeft size={18}/></button><span>{index+1} / {active.length}</span><button aria-label="Materia siguiente" onClick={()=>setChosen(active[(index+1)%active.length].id)}><ChevronRight size={18}/></button></div>}</div><div className="focus-progress"><div><span>Avance de actividades</span><b>{value}%</b></div><div className="progress-track" role="progressbar" aria-label={`Avance de ${focus.name}`} aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}><i style={{width:value+'%'}}/></div></div><div className="focus-bottom">{next?<button className="next-exam" onClick={()=>editExam(next)}><CalendarDays size={17}/><span>{next.type} · {dateLabel(next.date)}</span><span className="pending-label"><i/>{next.status}</span></button>:<span className="next-exam"><CheckCircle2 size={17}/>Sin evaluaciones pendientes</span>}<button className="primary" onClick={()=>openSubject(focus)}>Abrir materia <ArrowUpRight size={16}/></button></div></>:<div className="focus-empty"><h2>Tu próximo paso empieza acá.</h2><p>Agregá una materia para organizar tu cursada.</p><button className="primary" onClick={addSubject}><Plus size={17}/>Agregar materia</button></div>}
+   </section>
+   <button className="glass-card notes-shortcut" onClick={()=>navigate('notes')}><span className="soft-icon"><FileText size={22}/></span><span className="notes-shortcut-copy"><b>Apuntes a mano</b><span>Tus ideas y materiales, en un mismo lugar.</span></span><span className="shortcut-link">Ir a mis apuntes <ArrowUpRight size={15}/></span></button>
+   <aside className="glass-card agenda-card"><div className="agenda-title"><span className="soft-icon"><CalendarDays size={21}/></span><h2>Tu agenda</h2></div><CalendarComponent month={month} setMonth={setMonth} exams={data.assessments} onDate={filterDate}/><div className="agenda-divider"/><div className="agenda-pending"><h3>{upcoming.length===1?'Evaluación pendiente':'Evaluaciones pendientes'}</h3>{upcoming.length>3&&<span>Próximas 3 de {upcoming.length}</span>}</div><div className="upcoming-list">{upcoming.slice(0,3).map(e=><ExamRowComponent key={e.id} e={e} s={data.subjects.find(s=>s.id===e.subject_id)} onClick={()=>editExam(e)}/>)}{!upcoming.length&&<p className="agenda-empty">Sin pendientes por ahora.<br/>Un respiro también cuenta.</p>}</div><button className="calendar-link" onClick={()=>navigate('exams')}>Ver evaluaciones <ArrowUpRight size={16}/></button><div className="agenda-quote"><div aria-hidden="true"><Leaf size={28}/><svg viewBox="0 0 100 40"><path d="M0 38C22-15 43 55 95 7" fill="none" stroke="currentColor" strokeDasharray="3 6"/></svg></div><p>Las grandes metas<br/>se cursan de a poco.</p></div></aside>
+  </div>
+ </>;
+}
